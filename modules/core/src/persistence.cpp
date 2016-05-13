@@ -5217,7 +5217,7 @@ FileStorage& operator << (FileStorage& fs, const String& str)
     }
     else if( fs.state == NAME_EXPECTED + INSIDE_MAP )
     {
-        if( !cv_isalpha(*_str) )
+        if (!cv_isalpha(*_str) && *_str != '_')
             CV_Error_( CV_StsError, ("Incorrect element name %s", _str) );
         fs.elname = str;
         fs.state = VALUE_EXPECTED + INSIDE_MAP;
@@ -5593,6 +5593,35 @@ void read(const FileNode& node, std::vector<KeyPoint>& keypoints)
         keypoints.push_back(kpt);
     }
 }
+
+
+void write(FileStorage& fs, const String& objname, const std::vector<DMatch>& matches)
+{
+    cv::internal::WriteStructContext ws(fs, objname, CV_NODE_SEQ + CV_NODE_FLOW);
+
+    int i, n = (int)matches.size();
+    for( i = 0; i < n; i++ )
+    {
+        const DMatch& m = matches[i];
+        cv::write(fs, m.queryIdx);
+        cv::write(fs, m.trainIdx);
+        cv::write(fs, m.imgIdx);
+        cv::write(fs, m.distance);
+    }
+}
+
+void read(const FileNode& node, std::vector<DMatch>& matches)
+{
+    matches.resize(0);
+    FileNodeIterator it = node.begin(), it_end = node.end();
+    for( ; it != it_end; )
+    {
+        DMatch m;
+        it >> m.queryIdx >> m.trainIdx >> m.imgIdx >> m.distance;
+        matches.push_back(m);
+    }
+}
+
 
 int FileNode::type() const { return !node ? NONE : (node->tag & TYPE_MASK); }
 bool FileNode::isNamed() const { return !node ? false : (node->tag & NAMED) != 0; }
